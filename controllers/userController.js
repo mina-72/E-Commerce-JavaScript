@@ -1,5 +1,6 @@
 const { User } = require('../models/userModel')
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 
 exports.createUser = async (req, res) => {
     const salt = await bcrypt.genSaltSync(10)
@@ -49,11 +50,19 @@ exports.getUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
     const user = await User.findOne({ email: req.body.email })
+    //check if user is in DB
     if (!user) {
         return res.status(400).send('can not find user')
     }
+    //after exist user, compare user password with passwordhash that is in DB
 
     if (user && bcrypt.compareSync(req.body.password, user.passwordHash)) {
+        // create token
+        const token = jwt.sign({ useId: user.id }, 'secret', {
+            expiresIn: '1d',
+        })
+        // send email and token to frontend
+        res.status(200).send({ email: user.email, token: token })
         res.status(200).send('user Authenticated')
     } else {
         res.status(400).send('password is wrong')
